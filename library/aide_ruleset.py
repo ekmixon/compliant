@@ -48,7 +48,7 @@ def add_options(existing_options, options_to_add):
 
     # Create a list of new args that aren't already present
     options_added = [option for option in options_to_add if option not in existing_options]
-    
+
     if options_added:
         existing_options = existing_options + options_added
         changed = True
@@ -72,12 +72,12 @@ def remove_options(existing_options, options_to_remove):
     return changed, existing_options, options_removed
 
 def ruleset_pattern(name):
-    return r"^" + name + r"\s?=\s?.*$"
+    return f"^{name}" + r"\s?=\s?.*$"
 
 def update_content(content, rulesets):
     # Update the content
     for ruleset, options in rulesets.iteritems():
-        replacement = ruleset + " = " + "+".join(options)
+        replacement = f"{ruleset} = " + "+".join(options)
         content = re.sub(ruleset_pattern(ruleset), replacement, content)
 
     return content
@@ -104,7 +104,7 @@ def main():
         ]
     )
     # For existing rule sets
-    rulesets = dict()
+    rulesets = {}
     content = str()
     options = []
     options_changed = []
@@ -116,10 +116,9 @@ def main():
     ruleset_name = module.params['name'].rstrip().lstrip()
 
     # Get the options from either the 'options' or 'options_string' module arguments
-    if module.params['options']:
-        options = module.params['options']
-    else:
-        options = module.params['options_string'].split('+')
+    options = module.params['options'] or module.params[
+        'options_string'
+    ].split('+')
 
     # Open the file and read the content or fail
     try:
@@ -136,8 +135,8 @@ def main():
         existing_options = match[1].split('+')
         rulesets[match[0]] = existing_options
 
-    module.log(msg="EXISTING RULESET KEYS: " + str(rulesets.keys()))
-    module.log(msg="EXISTING RULESET: " + str(rulesets))
+    module.log(msg=f"EXISTING RULESET KEYS: {str(rulesets.keys())}")
+    module.log(msg=f"EXISTING RULESET: {rulesets}")
 
     # Take action
     if action == 'absent':
@@ -145,7 +144,7 @@ def main():
     elif action == 'present':
         changed, rulesets[ruleset_name], options_changed = add_options(rulesets[ruleset_name], options)
     elif action == 'updated':
-        if ruleset_name in rulesets.keys() or add_if_not_present:
+        if ruleset_name in rulesets or add_if_not_present:
             rulesets[ruleset_name] = options
             options_changed = options
             changed = True
@@ -155,20 +154,20 @@ def main():
     if not module.check_mode and changed:
         module.log(msg="WRITING")
         # Update the content
-        pattern = r"^" + ruleset_name + r"\s?=\s?.*$"
-        module.log(msg="PATTERN: " + pattern)
-        replacement = ruleset_name + " = " + "+".join(rulesets[ruleset_name])
-        module.log(msg="REPLACEMENT: " + replacement)
+        pattern = f"^{ruleset_name}" + r"\s?=\s?.*$"
+        module.log(msg=f"PATTERN: {pattern}")
+        replacement = f"{ruleset_name} = " + "+".join(rulesets[ruleset_name])
+        module.log(msg=f"REPLACEMENT: {replacement}")
         new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
-        
-        module.log(msg="OLD CONTENT equals NEW CONTENT: " + str(content == new_content))
+
+        module.log(msg=f"OLD CONTENT equals NEW CONTENT: {content == new_content}")
         # First, create a backup if desired.
         if module.params['backup']:
             backupdest = module.backup_local(fname)
         # Write the file
         try:
             temp_file = NamedTemporaryFile(mode='w')
-            module.log(msg="TEMP FILE NAME: " + temp_file.name)
+            module.log(msg=f"TEMP FILE NAME: {temp_file.name}")
             with open(temp_file.name, 'w') as fd:
                 fd.write(new_content)
 
@@ -179,12 +178,15 @@ def main():
         module.atomic_move(temp_file.name, fname)
 
 
-    facts = {}
-    facts['aide_ruleset'] = {'action': action,
-                             'name': ruleset_name,
-                             'existing_options': existing_options,
-                             'options_changed': options_changed,
-                             'backupdest': backupdest}
+    facts = {
+        'aide_ruleset': {
+            'action': action,
+            'name': ruleset_name,
+            'existing_options': existing_options,
+            'options_changed': options_changed,
+            'backupdest': backupdest,
+        }
+    }
 
     module.exit_json(changed=changed, ansible_facts=facts)
 

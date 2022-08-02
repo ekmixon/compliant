@@ -15,4 +15,4 @@ rate = github.get_rate_limit()
 remaining = rate.rate.remaining
 limit = rate.rate.limit
 reset_time = timezone.localize(rate.rate.reset)
-print(str(remaining) + ' of ' + str(limit) + ' resets at ' + reset_time.isoformat())
+print(f'{str(remaining)} of {str(limit)} resets at {reset_time.isoformat()}')

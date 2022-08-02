@@ -29,14 +29,21 @@ with open('controls_to_test.csv', 'r') as csvfile:
                 'uuid_number': uuid_number
             }
 
-count = 0
 count_keys = len(all_controls.keys())
-for uuid in all_controls.keys():
+for count, (uuid, value) in enumerate(all_controls.items()):
     all_controls[uuid]['body'] = template.render(all_controls[uuid])
     extant_issues = github.search_issues(query=all_controls[uuid]['name'])
     1
-    repo.create_issue(all_controls[uuid]['name'], body=all_controls[uuid]['body'], milestone=milestone)
-    print(str(count) + '/' + str(count_keys) + ' created "' + all_controls[uuid]['name'] + '"')
-    count += 1
+    repo.create_issue(
+        value['name'], body=all_controls[uuid]['body'], milestone=milestone
+    )
+
+    print(
+        f'{str(count)}/{count_keys}'
+        + ' created "'
+        + all_controls[uuid]['name']
+        + '"'
+    )
+
     sleep(15)
 

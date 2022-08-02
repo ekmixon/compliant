@@ -14,5 +14,5 @@ issues = repo.get_issues(state='open')
 for issue in issues:
     # pydevd.settrace()
     issue.edit(state='closed')
-    print('closed issue ' + str(issue.number))
+    print(f'closed issue {str(issue.number)}')
     sleep(5)

@@ -11,9 +11,7 @@ controls_by_uuid = {}
 def find_yaml(path):
     yaml_files = []
     for root, dirs, files in os.walk(path):
-        for f in files:
-            if '.yml' in f:
-                yaml_files.append(root + '/' + f)
+        yaml_files.extend(f'{root}/{f}' for f in files if '.yml' in f)
         for d in dirs:
             if d != '.':
                 yaml_files.extend(find_yaml(d))
@@ -33,12 +31,24 @@ def process_tasks(tasks, filename):
                         these_controls.append('"' + control + '","' + task['name'] + '","' + filename + '","' + task['uuid'] + '","' + line_number + '"')
                     else:
                         these_controls.append('"' + tag + '","' + task['name'] + '","' + filename + '","' + task['uuid'] + '","' + line_number + '"')
-    if isinstance(tasks, dict):
-        if tasks.get('tags'):
-            line_number = str(tasks.lc.line + 1)
-            task_uuid = str(uuid.uuid4())
-            for tag in tasks['tags']:
-                these_controls.append('"' + tag + '","' + tasks['name'] + '","' + filename + '","' + task_uuid + '","' + line_number + '"')
+    if isinstance(tasks, dict) and tasks.get('tags'):
+        line_number = str(tasks.lc.line + 1)
+        task_uuid = str(uuid.uuid4())
+        these_controls.extend(
+            '"'
+            + tag
+            + '","'
+            + tasks['name']
+            + '","'
+            + filename
+            + '","'
+            + task_uuid
+            + '","'
+            + line_number
+            + '"'
+            for tag in tasks['tags']
+        )
+
     return these_controls
 
 
@@ -53,7 +63,7 @@ try:
                     play[i]['filename'] = f.name
                 plays.extend(play)
 except Exception as e:
-    print('ERROR: ' + str(e))
+    print(f'ERROR: {str(e)}')
     exit(1)
 
 all_controls = []
